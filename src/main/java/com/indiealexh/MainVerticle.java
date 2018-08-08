@@ -3,8 +3,10 @@ package com.indiealexh;
 import com.indiealexh.models.FireData;
 import com.indiealexh.models.GeoLocation;
 import com.indiealexh.models.StateFireData;
+import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -35,30 +37,44 @@ public class MainVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainVerticle.class);
 
     private HttpClient httpClient;
-
+    private ConfigRetriever retriever;
 
     public FireData FireData;
 
     @Override
     public void start(Future<Void> startFuture) {
-        httpClient = vertx.createHttpClient();
-        Future<Void> steps = updateDatabase().compose(v -> startHttpServer());
-        steps.setHandler(ar -> {
-            if (ar.succeeded()) {
-                LOGGER.info("Succeeded boot up OnFire");
-                startFuture.complete();
-                // 30 Min repeated timer
-                vertx.setPeriodic(1800000, id -> {
-                    LOGGER.info("Updating database");
-                    updateDatabase();
-                });
-            } else {
-                LOGGER.info("Failed boot up");
-                startFuture.fail(ar.cause());
-            }
-        });
-    }
+        retriever = ConfigRetriever.create(vertx);
 
+        retriever.getConfig(json -> {
+            LOGGER.info("Starting FireDataVerticle");
+            JsonObject FireDataVerticleConfig = json.result().getJsonObject("FireDataVerticle");
+            vertx.deployVerticle(FireDataVerticle.class.getName(), new DeploymentOptions().setConfig(FireDataVerticleConfig));
+
+            LOGGER.info("Starting WebServerVerticle");
+            JsonObject WebServerVerticleConfig = json.result().getJsonObject("WebServerVerticle");
+            vertx.deployVerticle(WebServerVerticle.class.getName(), new DeploymentOptions().setConfig(WebServerVerticleConfig));
+
+            startFuture.complete();
+        });
+
+        httpClient = vertx.createHttpClient();
+
+//        Future<Void> steps = updateDatabase();
+//        steps.setHandler(ar -> {
+//            if (ar.succeeded()) {
+//                LOGGER.info("Succeeded boot up OnFire");
+//                startFuture.complete();
+//                // 30 Min repeated timer
+//                vertx.setPeriodic(1800000, id -> {
+//                    LOGGER.info("Updating database");
+//                    updateDatabase();
+//                });
+//            } else {
+//                LOGGER.info("Failed boot up");
+//                startFuture.fail(ar.cause());
+//            }
+//        });
+    }
 
 
     private Future<String> downloadXmlFireData() {
@@ -218,26 +234,6 @@ public class MainVerticle extends AbstractVerticle {
         return future;
     }
 
-    private Future<Void> startHttpServer() {
-        Future<Void> future = Future.future();
-        HttpServer server = vertx.createHttpServer();
 
-        Router router = Router.router(vertx);
-
-        router.get("/api/firedata").handler(this::fireDataHandler);
-
-        server
-                .requestHandler(router::accept)
-                .listen(8080, ar -> {
-                    if (ar.succeeded()) {
-                        future.complete();
-                    } else {
-                        LOGGER.error("Could not start a HTTP server", ar.cause());
-                        future.fail(ar.cause());
-                    }
-                });
-
-        return future;
-    }
 
 }

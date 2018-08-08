@@ -1,0 +1,10 @@
+{
+  "FireDataVerticle" : {
+    "port" : "443",
+    "url" : "rmgsc.cr.usgs.gov",
+    "path" : "/outgoing/GeoMAC/current_year_fire_data/KMLS/ActiveFirePerimeters.kml"
+  },
+  "WebServerVerticle" : {
+
+  }
+}

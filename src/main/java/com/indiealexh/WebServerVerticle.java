@@ -1,5 +1,6 @@
 package com.indiealexh;
 
+import com.indiealexh.models.FireData;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpHeaders;
@@ -7,6 +8,8 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.shareddata.LocalMap;
+import io.vertx.core.shareddata.SharedData;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
@@ -46,10 +49,15 @@ public class WebServerVerticle extends AbstractVerticle {
 
     private void fireDataHandler(RoutingContext context) {
 
-        final JsonObject json = JsonObject.mapFrom(""); //TODO: Insert async data here
+        SharedData sd = vertx.sharedData();
+        LocalMap<String, String> fireDataMap = sd.getLocalMap("firedata");
+        String fireDataJson = fireDataMap.get("data");
 
+        if(null == fireDataJson) {
+            fireDataJson = "{\"error\":true}";
+        }
         context.response().putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        context.response().end(json.encode());
+        context.response().end(fireDataJson);
     }
 
 }

@@ -31,7 +31,7 @@ public class WebServerVerticle extends AbstractVerticle {
 
         Router router = Router.router(vertx);
 
-        router.get("/api/firedata").handler(this::fireDataHandler);
+        router.get("/firedata").handler(this::fireDataHandler);
 
         server
                 .requestHandler(router::accept)
